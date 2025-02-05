@@ -262,6 +262,182 @@ const updateUserProfilePic = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedUser, "Profile pic updated successfully"))
 })
 
+const toggleFollow = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const userToFollow = await User.findById(userId);
+
+    if (!userToFollow) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (userToFollow._id.toString() === req.user._id.toString()) {
+        throw new ApiError(400, "You cannot follow yourself");
+    }
+
+    if (userToFollow.isPrivate) {
+        if (userToFollow.followers.includes(req.user._id)) {
+            userToFollow.followers.pull(req.user._id);
+            req.user.following.pull(userToFollow._id);
+            await userToFollow.save();
+            await req.user.save();
+            return res.status(200).json(
+                new ApiResponse(200, {}, "User unfollowed successfully")
+            );
+        }
+
+        if (userToFollow.followRequests.includes(req.user._id)) {
+            userToFollow.followRequests.pull(req.user._id);
+            await userToFollow.save();
+            return res.status(200).json(
+                new ApiResponse(200, {}, "Follow request cancelled")
+            );
+        }
+
+        userToFollow.followRequests.push(req.user._id);
+        await userToFollow.save();
+        return res.status(200).json(
+            new ApiResponse(200, {}, "Follow request sent")
+        );
+    }
+
+    const isFollowing = userToFollow.followers.includes(req.user._id);
+
+    if (isFollowing) {
+        userToFollow.followers.pull(req.user._id);
+        req.user.following.pull(userToFollow._id);
+    } else {
+        userToFollow.followers.push(req.user._id);
+        req.user.following.push(userToFollow._id);
+    }
+
+    await userToFollow.save();
+    await req.user.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { following: !isFollowing },
+            isFollowing ? "User unfollowed successfully" : "User followed successfully"
+        )
+    );
+});
+
+const handleFollowRequest = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const { accept = false } = req.body;
+
+    const userToHandle = await User.findById(userId);
+
+    if (!userToHandle) {
+        throw new ApiError(404, "User not found");
+    }
+
+    if (!req.user.isPrivate) {
+        throw new ApiError(400, "Only private accounts can accept/reject follow requests");
+    }
+
+    if (!req.user.followRequests.includes(userToHandle._id)) {
+        throw new ApiError(400, "No follow request from this user");
+    }
+
+    req.user.followRequests.pull(userToHandle._id);
+
+    if (accept === true) {
+        req.user.followers.push(userToHandle._id);
+        userToHandle.following.push(req.user._id);
+        await userToHandle.save();
+    }
+
+    await req.user.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {},
+            accept ? "Follow request accepted" : "Follow request rejected"
+        )
+    );
+});
+
+const togglePrivateAccount = asyncHandler(async (req, res) => {
+    req.user.isPrivate = !req.user.isPrivate;
+    await req.user.save();
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            { isPrivate: req.user.isPrivate },
+            `Account is now ${req.user.isPrivate ? 'private' : 'public'}`
+        )
+    );
+});
+
+const getFollowLists = asyncHandler(async (req, res) => {
+
+    const { userId } = req.params;
+
+    const {
+        type = "followers",
+        page = 1,
+        limit = 10,
+        search = ""
+    } = req.query;
+
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    let userIds = type === "followers" ? user.followers : user.following;
+
+    const query = {
+        _id: { $in: userIds }
+    };
+
+    if (search) {
+        query.username = { $regex: search, $options: "i" };
+    }
+
+    const options = {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        select: "username profilePic bio",
+        sort: { username: 1 }
+    };
+
+    const users = await User.paginate(query, options);
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {
+                    users: users.docs,
+                    totalUsers: users.totalDocs,
+                    totalPages: users.totalPages
+                },
+                `${type} list fetched successfully`
+            )
+        );
+});
+
+const getSuggestedUsers = asyncHandler(async (req, res) => {
+    const followingIds = req.user.following;
+    followingIds.push(req.user._id);
+
+    const suggestedUsers = await User.find({
+        _id: { $nin: followingIds },
+        isPrivate: false
+    })
+        .select("username profilePic")
+        .limit(10);
+
+    return res.status(200).json(
+        new ApiResponse(200, suggestedUsers, "Suggested users fetched successfully")
+    );
+});
+
 export {
     registerUser,
     loginUser,
@@ -270,5 +446,10 @@ export {
     changeCurrentPassword,
     getCurrentUser,
     updateAccountDetails,
-    updateUserProfilePic
+    updateUserProfilePic,
+    toggleFollow,
+    handleFollowRequest,
+    togglePrivateAccount,
+    getFollowLists,
+    getSuggestedUsers
 }

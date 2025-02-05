@@ -7,7 +7,12 @@ import {
     changeCurrentPassword,
     getCurrentUser,
     updateAccountDetails,
-    updateUserProfilePic
+    updateUserProfilePic,
+    toggleFollow,
+    handleFollowRequest,
+    togglePrivateAccount,
+    getFollowLists,
+    getSuggestedUsers
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -22,5 +27,11 @@ router.get("/getCurrentUser", verifyJWT, getCurrentUser);
 router.put("/changePassword", verifyJWT, changeCurrentPassword);
 router.put("/updateUser", verifyJWT, updateAccountDetails);
 router.put("/updateProfilePic", verifyJWT, upload.single("profilePic"), updateUserProfilePic);
+
+router.post("/toggleFollow/:userId", verifyJWT, toggleFollow);
+router.post("/followRequest/:userId", verifyJWT, handleFollowRequest);
+router.post("/togglePrivate", verifyJWT, togglePrivateAccount);
+router.get("/followList/:userId", getFollowLists);
+router.get("/suggestedUsers", verifyJWT, getSuggestedUsers);
 
 export default router

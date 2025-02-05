@@ -1,17 +1,23 @@
 import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken"
 import bcrypt from "bcrypt"
+import mongoosePaginate from "mongoose-paginate-v2"
 
 const userSchema = new Schema({
     username: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        lowercase: true,
+        trim: true,
+        index: true
     },
     email: {
         type: String,
         required: true,
-        unique: true
+        unique: true,
+        lowercase: true,
+        trim: true
     },
     password: {
         type: String,
@@ -20,9 +26,31 @@ const userSchema = new Schema({
     profilePic: {
         type: String
     },
+    bio: {
+        type: String,
+        trim: true
+    },
+    followers: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    following: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }],
+    isPrivate: {
+        type: Boolean,
+        default: false
+    },
+    followRequests: [{
+        type: Schema.Types.ObjectId,
+        ref: "User"
+    }],
     refreshToken: {
         type: String
     }
+}, {
+    timestamps: true
 })
 
 userSchema.pre("save", async function (next) {
@@ -67,4 +95,13 @@ userSchema.methods.generateRefreshToken = function () {
     )
 }
 
+userSchema.methods.isFollowing = function (userId) {
+    return this.following.includes(userId);
+}
+
+userSchema.methods.hasRequestedToFollow = function (userId) {
+    return this.followRequests.includes(userId);
+}
+
+userSchema.plugin(mongoosePaginate)
 export const User = mongoose.model("User", userSchema)
