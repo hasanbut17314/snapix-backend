@@ -22,7 +22,7 @@ const router = Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/logout", verifyJWT, logoutUser);
-router.get("/refreshToken", refreshAccessToken);
+router.post("/refreshToken", refreshAccessToken);
 router.get("/getCurrentUser", verifyJWT, getCurrentUser);
 router.put("/changePassword", verifyJWT, changeCurrentPassword);
 router.put("/updateUser", verifyJWT, updateAccountDetails);

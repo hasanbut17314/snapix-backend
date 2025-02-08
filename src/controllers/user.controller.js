@@ -28,9 +28,9 @@ const generateAccessAndRefereshTokens = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
 
-    const { username, email, password } = req.body
+    const { username, email, password, confirmPassword } = req.body
 
-    if ([username, email, password].some((field) => field?.trim() === "")) {
+    if ([username, email, password, confirmPassword].some((field) => field?.trim() === "")) {
         throw new ApiError(400, "All fields are required")
     }
 
@@ -40,6 +40,10 @@ const registerUser = asyncHandler(async (req, res) => {
 
     if (existedUser) {
         throw new ApiError(409, "User with email or username already exists")
+    }
+
+    if (password !== confirmPassword) {
+        throw new ApiError(400, "Passwords do not match")
     }
 
     let profilePicLocalPath;
@@ -77,14 +81,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
 const loginUser = asyncHandler(async (req, res) => {
 
-    const { email, username, password } = req.body
+    const { identifier, password } = req.body
 
-    if (!(username || email)) {
+    if (!identifier) {
         throw new ApiError(400, "username or email is required")
     }
 
     const user = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username: identifier }, { email: identifier }]
     })
 
     if (!user) {
