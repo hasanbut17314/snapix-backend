@@ -7,6 +7,7 @@ import {
     updatePost,
     deletePost,
     togglePostLike,
+    getPostComments,
     addComment,
     deleteComment,
     updateComment
@@ -28,6 +29,7 @@ router.put("/updatePost/:postId", upload.single("media"), updatePost);
 router.delete("/deletePost/:postId", deletePost);
 router.post("/toggleLike/:postId", togglePostLike);
 // Comment routes
+router.get("/getComments/:postId", getPostComments);
 router.post("/addComment/:postId", addComment);
 router.put("/:postId/updateComment/:commentId", updateComment);
 router.delete("/:postId/deleteComment/:commentId", deleteComment);

@@ -81,13 +81,6 @@ const getPosts = asyncHandler(async (req, res) => {
                 select: "username profilePic"
             },
             {
-                path: "comments",
-                populate: {
-                    path: "owner",
-                    select: "username profilePic"
-                }
-            },
-            {
                 path: "likes",
                 select: "username profilePic"
             }
@@ -337,6 +330,23 @@ const togglePostLike = asyncHandler(async (req, res) => {
         );
 });
 
+const getPostComments = asyncHandler(async (req, res) => {
+    const { postId } = req.params;
+
+    const post = await Post.findById(postId);
+
+    if (!post) {
+        throw new ApiError(404, "Post not found");
+    }
+
+    const comments = await Comment.find({ post: postId })
+        .populate("owner", "username profilePic");
+
+    return res.status(200).json(
+        new ApiResponse(200, comments, "Comments fetched successfully")
+    );
+});
+
 const addComment = asyncHandler(async (req, res) => {
     const { postId } = req.params;
     const { content } = req.body;
@@ -432,6 +442,7 @@ export {
     updatePost,
     deletePost,
     togglePostLike,
+    getPostComments,
     addComment,
     deleteComment,
     updateComment

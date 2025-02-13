@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "seed": "node -r dotenv/config src/seeds/seed.js"
   },
   "author": "me",
   "license": "ISC",
