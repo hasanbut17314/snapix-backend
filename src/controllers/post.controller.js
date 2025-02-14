@@ -112,6 +112,11 @@ const getPosts = asyncHandler(async (req, res) => {
     }
 
     const posts = await Post.paginate(query, options);
+    const isLiked = posts.docs.map(post => post.likes.some(like => like._id.toString() === req.user._id.toString()));
+
+    posts.docs.forEach((post, index) => {
+        post.isLiked = isLiked[index];
+    });
 
     return res
         .status(200)
@@ -170,6 +175,10 @@ const getUserFeed = asyncHandler(async (req, res) => {
 
     const posts = await Post.paginate(query, options);
 
+    posts.docs.forEach(post => {
+        post.isLiked = post.likes.some(like => like._id.toString() === req.user._id.toString());
+    });
+
     return res
         .status(200)
         .json(
@@ -207,6 +216,9 @@ const getPost = asyncHandler(async (req, res) => {
         post.owner._id.toString() !== req.user?._id.toString()) {
         throw new ApiError(403, "You don't have permission to view this post");
     }
+
+    const isLiked = post.likes.some(like => like._id.toString() === req.user._id.toString());
+    post.isLiked = isLiked;
 
     return res.status(200).json(
         new ApiResponse(200, post, "Post fetched successfully")
