@@ -17,12 +17,9 @@ import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
-// Public routes
+router.use(verifyJWT);
 router.get("/getPosts", getPosts);
 router.get("/getPost/:postId", getPost);
-
-router.use(verifyJWT);
-// Protected routes
 router.post("/createPost", upload.single("media"), createPost);
 router.get("/userFeed", getUserFeed);
 router.put("/updatePost/:postId", upload.single("media"), updatePost);
